@@ -4,7 +4,7 @@ One Railway project has two independently deployed services, both sourced from `
 
 ## Engine
 
-- Config path: `/railway.json`; Dockerfile: `Dockerfile.engine`.
+- Railway service settings: Dockerfile path `Dockerfile.engine`, start command `npm run engine`, healthcheck `/healthz` (120s), restart always.
 - One replica; persistent volume mounted at `/app/data`; sleeping disabled.
 - `API_HOST=::`, `API_PORT=3001`, `PORT=3001`, `AUTO_RESUME=true`, `RAILWAY_RUN_UID=0`.
 - `DATA_DIR=/app/data/imported-session` for the existing migrated portfolio, or `/app/data` for a new installation.
@@ -23,7 +23,7 @@ One Railway project has two independently deployed services, both sourced from `
 - The Jev API key belongs only on the engine. No secret is sent to browser code or GitHub.
 - `/healthz` is public and confirms required runtime settings exist; data/control routes require login.
 
-Pushes to GitHub deploy both connected services with their respective Dockerfiles. The engine still uses legacy `railway.json`; migrate that configuration before Railway’s December 1, 2026 cutoff. The engine resumes the persisted start/pause preference after restart. Use one engine replica per portfolio; do not scale file-based storage to multiple writers. Configure Railway volume backups. A persistent volume is not itself a backup.
+Pushes to GitHub deploy both connected services with their respective Dockerfiles. Build and runtime settings are configured separately on each Railway service; there is no shared root `railway.json` to override their Dockerfile paths. The engine resumes the persisted start/pause preference after restart. Use one engine replica per portfolio; do not scale file-based storage to multiple writers. Configure Railway volume backups. A persistent volume is not itself a backup.
 
 ## Local use
 

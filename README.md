@@ -44,4 +44,4 @@ Next.js App Router + React + strict TypeScript, TradingView Lightweight Charts, 
 
 ## Deploy from GitHub
 
-Both services run in the same Railway project. The engine uses `railway.json` and `Dockerfile.engine`; the dashboard uses `Dockerfile.dashboard` with build/start settings configured on Railway. Dashboard traffic reaches the engine over Railway private networking. See [deployment instructions](deploy/README.md). No Vercel account is needed.
+Both services run in the same Railway project. The engine uses `Dockerfile.engine`; the dashboard uses `Dockerfile.dashboard` with build/start settings configured on Railway. Dashboard traffic reaches the engine over Railway private networking. See [deployment instructions](deploy/README.md). No Vercel account is needed.
