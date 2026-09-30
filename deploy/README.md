@@ -30,3 +30,14 @@ The Jev key belongs on the engine only. Do not prefix secrets with `NEXT_PUBLIC_
 Stop the local engine before a final copy of `data/session.json` and `data/audit.jsonl`. Stop the VPS engine, copy those files into its `paper-data` volume with ownership uid 1000, then restart. Never have two processes write the same volume. Historical decisions do not recreate missed trades while offline. Back up the data volume regularly. Postgres is not introduced by this deployment.
 
 Use `docker compose logs --tail=100 engine` to inspect status. This setup does not prevent outages or guarantee fills. The deployed engine retains the tested 15-second polling cadence.
+
+## Railway engine (managed alternative to a VPS)
+
+1. Create a Railway service from this GitHub repository. `railway.json` selects `Dockerfile.engine` and starts only the engine.
+2. Attach one persistent volume at `/app/data` **before starting paper trading**. Keep one replica. Enable volume backups in Railway.
+3. Set `TYPESAFE_API_KEY`, `ENGINE_API_TOKEN` (32+ random characters), `API_HOST=0.0.0.0`, `API_PORT=3001`, `PORT=3001`, `DATA_DIR=/app/data`, `AUTO_RESUME=true`, and `RAILWAY_RUN_UID=0`. Railway's root-owned volume requires the last setting for this Docker image.
+4. Disable Serverless/App Sleeping. Use an account plan that supports the required continuous service and restart policy.
+5. Generate a Railway HTTPS domain targeting port 3001. Configure its origin as `ENGINE_URL` in Vercel and share only the engine token with Vercel. Keep the Jev key on Railway.
+6. Verify `/healthz`, authenticated `/api/state`, and live candle updates. Start paper trading through the dashboard after moving the saved session, or explicitly begin a fresh portfolio.
+
+Do not put any secret or local trading history in GitHub. Importing the repository into Railway without configuring its volume and environment variables does not complete deployment.
