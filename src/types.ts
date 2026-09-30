@@ -1,3 +1,4 @@
+import type { Market, MarketSymbol } from "./markets";
 export interface Candle {
   time: number;
   open: number;
@@ -79,6 +80,7 @@ export interface Trade {
   quote: Quote;
 }
 export interface Session {
+  market?: MarketSymbol;
   enabled?: boolean;
   version: 1;
   createdAt: number;
@@ -100,6 +102,8 @@ export interface Settings {
   intervalMinutes: number;
 }
 export interface Snapshot {
+  market: Market;
+  markets?: { symbol: MarketSymbol; running: boolean; hasPosition: boolean }[];
   running: boolean;
   busy: boolean;
   keyConfigured: boolean;

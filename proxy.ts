@@ -15,10 +15,10 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
   if (!validBasicAuth(request.headers.get("authorization"), user, password))
-    return new NextResponse("Sign in to Bitcoin Paper Lab", {
+    return new NextResponse("Sign in to Crypto Paper Lab", {
       status: 401,
       headers: {
-        "WWW-Authenticate": 'Basic realm="Bitcoin Paper Lab", charset="UTF-8"',
+        "WWW-Authenticate": 'Basic realm="Crypto Paper Lab", charset="UTF-8"',
         "Cache-Control": "no-store",
       },
     });

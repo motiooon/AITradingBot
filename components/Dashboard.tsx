@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import { MARKETS, parseMarket, type MarketSymbol } from "../src/markets";
 import type { Snapshot } from "../src/types";
 const PriceChart = dynamic(() => import("./PriceChart"), {
   ssr: false,
@@ -21,6 +22,30 @@ const time = (n?: number) =>
     : new Date(n).toISOString().replace("T", " ").slice(0, 19) + " UTC";
 type Tab = "decisions" | "trades" | "events";
 export default function Dashboard() {
+  const [market, setMarket] = useState<MarketSymbol>("BTC");
+  useEffect(() => {
+    try {
+      setMarket(parseMarket(localStorage.getItem("paper-market")) || "BTC");
+    } catch {}
+  }, []);
+  function selectMarket(symbol: MarketSymbol) {
+    setMarket(symbol);
+    try {
+      localStorage.setItem("paper-market", symbol);
+    } catch {}
+  }
+  return (
+    <MarketDashboard key={market} market={market} selectMarket={selectMarket} />
+  );
+}
+function MarketDashboard({
+  market,
+  selectMarket,
+}: {
+  market: MarketSymbol;
+  selectMarket: (market: MarketSymbol) => void;
+}) {
+  const asset = MARKETS[market];
   const [data, setData] = useState<Snapshot | null>(null),
     [failure, setFailure] = useState<string | null>(null),
     [tab, setTab] = useState<Tab>("decisions"),
@@ -29,7 +54,9 @@ export default function Dashboard() {
     [clock, setClock] = useState("");
   const refresh = useCallback(async () => {
     try {
-      const r = await fetch("/api/state", { cache: "no-store" });
+      const r = await fetch("/api/state?market=" + market, {
+        cache: "no-store",
+      });
       if (!r.ok) {
         const body = await r
           .json()
@@ -37,6 +64,10 @@ export default function Dashboard() {
         throw new Error(body.error || "Paper engine unavailable");
       }
       const next: Snapshot = await r.json();
+      if (next.market?.symbol !== market)
+        throw new Error(
+          "Market data mismatch. Refresh after deployment completes.",
+        );
       setData(next);
       setFailure(null);
     } catch (e) {
@@ -46,7 +77,7 @@ export default function Dashboard() {
           : "Disconnected from the paper engine. Displayed values may be stale.",
       );
     }
-  }, []);
+  }, [market]);
   useEffect(() => {
     void refresh();
     const poll = setInterval(() => void refresh(), 3000),
@@ -62,7 +93,9 @@ export default function Dashboard() {
   async function action(name: string) {
     setPending(true);
     try {
-      const r = await fetch("/api/" + name, { method: "POST" }),
+      const r = await fetch("/api/" + name + "?market=" + market, {
+          method: "POST",
+        }),
         body: { error?: string } = await r.json();
       if (!r.ok) throw new Error(body.error || "Action failed");
       await refresh();
@@ -100,7 +133,7 @@ export default function Dashboard() {
       "FILL TIME (UTC)",
       "SIDE",
       "FILL PRICE",
-      "BTC",
+      market,
       "FEE",
       "REALIZED P&L",
       "REASON",
@@ -157,9 +190,9 @@ export default function Dashboard() {
     <>
       <header>
         <div className="brand">
-          <span className="logo">₿</span>
+          <span className="logo">{market === "BTC" ? "₿" : "◎"}</span>
           <div>
-            BITCOIN <strong>PAPER LAB</strong>
+            CRYPTO <strong>PAPER LAB</strong>
             <small>Research terminal / 01</small>
           </div>
         </div>
@@ -174,12 +207,30 @@ export default function Dashboard() {
             <p className="eyebrow">MARKET OBSERVATORY</p>
             <h1>Watch the signal. Measure the result.</h1>
             <p className="muted">
-              Bitcoin technical analysis · Jev forecasts · Timestamped paper
-              execution
+              {asset.name} technical analysis · Jev forecasts · Timestamped
+              paper execution
             </p>
           </div>
           <div className="actions">
-            <a href="/api/export" className="button secondary">
+            <label className="market-select">
+              Market
+              <select
+                aria-label="Trading market"
+                value={market}
+                disabled={pending}
+                onChange={(e) => selectMarket(e.target.value as MarketSymbol)}
+              >
+                {Object.values(MARKETS).map((m) => (
+                  <option key={m.symbol} value={m.symbol}>
+                    {m.pair} · {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <a
+              href={"/api/export?market=" + market}
+              className="button secondary"
+            >
               Export session
             </a>
             <button
@@ -195,6 +246,19 @@ export default function Dashboard() {
             </button>
           </div>
         </section>
+        <div className="market-summary">
+          <span>
+            Separate $10,000 virtual portfolios. Start/pause applies to {market}{" "}
+            only.
+          </span>
+          <span>Switching views does not pause trading.</span>
+          {data?.markets?.map((m) => (
+            <span key={m.symbol} className="tag">
+              {m.symbol}: {m.running ? "ACTIVE" : "PAUSED"}
+              {m.hasPosition ? " · POSITION OPEN" : ""}
+            </span>
+          ))}
+        </div>
         <div
           className={`notice ${failure ? "dashboard-error" : ""}`}
           role="status"
@@ -203,7 +267,7 @@ export default function Dashboard() {
         </div>
         <section className="metrics">
           <article>
-            <label>BITCOIN / USD</label>
+            <label>{asset.name.toUpperCase()} / USD</label>
             <strong id="price">{money(data?.quote?.last)}</strong>
             <small>
               Kraken ·{" "}
@@ -235,7 +299,7 @@ export default function Dashboard() {
             <div className="panel-title">
               <div>
                 <h2>
-                  BTC / USD <span className="tag">5 MIN</span>
+                  {market} / USD <span className="tag">5 MIN</span>
                 </h2>
                 <p>
                   Kraken candles · live candle shown, closed candles drive
@@ -338,7 +402,7 @@ export default function Dashboard() {
               {p ? (
                 <>
                   <strong className="mint">
-                    LONG · {p.qty.toFixed(6)} BTC
+                    LONG · {p.qty.toFixed(6)} {market}
                   </strong>
                   <p>
                     Entry {money(p.entry)} · {time(p.entryTime)}
@@ -461,8 +525,8 @@ export default function Dashboard() {
             per side · 2% stop / 4% target
           </span>
           <span>
-            BTC reference prices. Solana swap costs and cbBTC tracking
-            differences are not modeled.
+            {market} reference prices from Kraken. Solana network fees, DEX
+            liquidity and swap costs are not modeled.
           </span>
           <span>
             Paused entries do not disable risk exits. Keep the paper engine

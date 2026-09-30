@@ -32,3 +32,7 @@ Pushes to GitHub deploy both connected services with their respective Dockerfile
 ## Existing history
 
 The original local history was copied into `/app/data/imported-session` on the Railway engine volume. That path must stay mounted and match DATA_DIR. Archive/export or back up the volume before changing it. Do not replace a live engine's portfolio files while it is writing.
+
+## Multiple markets
+
+The engine monitors BTC/USD and SOL/USD in the same process, each with independent session state and risk monitoring. Existing BTC files stay in DATA_DIR; SOL files live in DATA_DIR/SOL on the same persistent volume. Keep one engine replica for both portfolios. AUTO_RESUME restores each market's saved preference; SOL starts paused on first deployment. Dashboard market selection is local to the browser and does not alter another market's start/pause state.

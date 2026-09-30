@@ -1,3 +1,4 @@
+import { parseMarket } from "../../../src/markets";
 import { NextRequest } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -6,6 +7,12 @@ async function forward(
   context: { params: Promise<{ action: string }> },
 ) {
   const { action } = await context.params;
+  const market = parseMarket(request.nextUrl.searchParams.get("market"));
+  if (!market)
+    return Response.json(
+      { error: "Unsupported market. Choose BTC or SOL." },
+      { status: 400 },
+    );
   const allowed =
     request.method === "GET"
       ? ["state", "export"]
@@ -48,15 +55,18 @@ async function forward(
       )
     )
       throw new Error("Use HTTPS or Railway private networking for the engine");
-    const response = await fetch(new URL("/api/" + action, url), {
-      method: request.method,
-      headers: process.env.ENGINE_API_TOKEN
-        ? { Authorization: `Bearer ${process.env.ENGINE_API_TOKEN}` }
-        : {},
-      cache: "no-store",
-      redirect: "error",
-      signal: AbortSignal.timeout(15000),
-    });
+    const response = await fetch(
+      new URL("/api/" + action + "?market=" + market, url),
+      {
+        method: request.method,
+        headers: process.env.ENGINE_API_TOKEN
+          ? { Authorization: `Bearer ${process.env.ENGINE_API_TOKEN}` }
+          : {},
+        cache: "no-store",
+        redirect: "error",
+        signal: AbortSignal.timeout(15000),
+      },
+    );
     const headers = new Headers({
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
@@ -64,7 +74,7 @@ async function forward(
     if (action === "export")
       headers.set(
         "Content-Disposition",
-        'attachment; filename="bitcoin-paper-session.json"',
+        `attachment; filename="${market.toLowerCase()}-paper-session.json"`,
       );
     return new Response(await response.text(), {
       status: response.status,

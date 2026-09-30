@@ -1,3 +1,4 @@
+import { MARKETS, type MarketSymbol } from "./markets";
 import { z } from "zod";
 import type { Candle, Quote } from "./types";
 import { validatePrediction } from "./engine";
@@ -17,8 +18,8 @@ async function kraken(path: string): Promise<Record<string, unknown>> {
   return body.result;
 }
 const numeric = z.coerce.number().finite();
-export async function getQuote(): Promise<Quote> {
-  const result = await kraken("Ticker?pair=XBTUSD"),
+export async function getQuote(symbol: MarketSymbol = "BTC"): Promise<Quote> {
+  const result = await kraken("Ticker?pair=" + MARKETS[symbol].krakenPair),
     r = z
       .object({
         b: z.array(numeric).min(1),
@@ -28,11 +29,13 @@ export async function getQuote(): Promise<Quote> {
       .parse(Object.values(result)[0]);
   return { bid: r.b[0], ask: r.a[0], last: r.c[0], time: Date.now() };
 }
-export async function getCandles(): Promise<{
+export async function getCandles(symbol: MarketSymbol = "BTC"): Promise<{
   closed: Candle[];
   forming: Candle | null;
 }> {
-  const result = await kraken("OHLC?pair=XBTUSD&interval=5");
+  const result = await kraken(
+    "OHLC?pair=" + MARKETS[symbol].krakenPair + "&interval=5",
+  );
   const entry = Object.entries(result).find(([k]) => k !== "last");
   if (!entry) throw new Error("Missing candle data");
   const rows = z.array(z.array(numeric).min(8)).parse(entry[1]);
@@ -53,7 +56,7 @@ export const questions = {
   forecast: {
     type: "choice",
     instructions:
-      "Using only the supplied closed candles and indicators, forecast BTC price direction over the next 30 minutes relative to the last closed candle. This is an experimental forecast, not established predictive skill. Use unclear when evidence conflicts or is insufficient.",
+      "Using only the supplied closed candles and indicators, forecast the price direction of the asset identified in `market` over the next 30 minutes relative to the last closed candle. This is an experimental forecast, not established predictive skill. Use unclear when evidence conflicts or is insufficient.",
     criteria: {
       up: "Price is expected to end above the reference close.",
       down: "Price is expected to end below the reference close.",

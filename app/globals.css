@@ -535,3 +535,23 @@ footer a {
     height: 320px;
   }
 }
+
+.market-select {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.market-select select {
+  min-width: 170px;
+}
+.market-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 12px;
+}
