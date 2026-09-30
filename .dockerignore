@@ -1,0 +1,7 @@
+.git
+.env*
+.vercel
+.next
+node_modules
+data
+deploy/*.env

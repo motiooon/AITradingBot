@@ -1,0 +1,4 @@
+# Replace with the VPS engine domain. DNS must point at the VPS.
+engine.example.com {
+    reverse_proxy 127.0.0.1:3001
+}

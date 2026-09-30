@@ -1,0 +1,13 @@
+.env
+node_modules/
+data/*
+!data/.gitkeep
+.DS_Store
+
+.next/
+*.tsbuildinfo
+next-env.d.ts
+.vercel/
+.env.*
+!.env.example
+deploy/*.env
