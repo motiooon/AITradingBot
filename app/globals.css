@@ -536,16 +536,6 @@ footer a {
   }
 }
 
-.market-select {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  color: var(--muted);
-  font-size: 12px;
-}
-.market-select select {
-  min-width: 170px;
-}
 .market-summary {
   display: flex;
   flex-wrap: wrap;
@@ -554,4 +544,115 @@ footer a {
   margin: 0 0 16px;
   color: var(--muted);
   font-size: 12px;
+}
+
+/* Equal control geometry keeps the label from stretching the action row. */
+.actions {
+  align-items: flex-end;
+  padding-top: 24px;
+}
+.actions > .button,
+.actions > button,
+.actions > .market-select {
+  width: 190px;
+  flex: 0 0 190px;
+}
+.actions > .button,
+.actions > button,
+.select-trigger {
+  height: 44px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+  font-size: 14px;
+  line-height: 20px;
+}
+.market-select {
+  position: relative;
+}
+.market-select > label {
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.select-trigger {
+  width: 100%;
+  gap: 12px;
+  justify-content: space-between;
+  background: #17212a;
+  border: 1px solid var(--line);
+  color: var(--text);
+}
+.select-trigger > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.select-trigger svg {
+  flex-shrink: 0;
+}
+.select-trigger:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 3px;
+}
+.select-content {
+  z-index: 100;
+  min-width: var(--radix-select-trigger-width);
+  max-height: var(--radix-select-content-available-height);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #17212a;
+  color: var(--text);
+  box-shadow: 0 12px 32px #0006;
+}
+.select-viewport {
+  padding: 4px;
+}
+.select-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 34px 8px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: default;
+  user-select: none;
+  outline: none;
+}
+.select-item[data-highlighted] {
+  background: #263b43;
+}
+.select-item[data-state="checked"] {
+  color: var(--mint);
+}
+.select-item[data-disabled] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.select-check {
+  position: absolute;
+  right: 10px;
+  display: flex;
+}
+.select-scroll {
+  display: flex;
+  justify-content: center;
+  padding: 4px;
+}
+@media (max-width: 760px) {
+  .actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .actions > .button,
+  .actions > button,
+  .actions > .market-select {
+    width: 100%;
+  }
 }

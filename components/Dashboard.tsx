@@ -1,6 +1,13 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "./ui/select";
 import { MARKETS, parseMarket, type MarketSymbol } from "../src/markets";
 import type { Snapshot } from "../src/types";
 const PriceChart = dynamic(() => import("./PriceChart"), {
@@ -212,21 +219,25 @@ function MarketDashboard({
             </p>
           </div>
           <div className="actions">
-            <label className="market-select">
-              Market
-              <select
-                aria-label="Trading market"
+            <div className="market-select">
+              <label htmlFor="market-picker">Market</label>
+              <Select
                 value={market}
                 disabled={pending}
-                onChange={(e) => selectMarket(e.target.value as MarketSymbol)}
+                onValueChange={(value) => selectMarket(value as MarketSymbol)}
               >
-                {Object.values(MARKETS).map((m) => (
-                  <option key={m.symbol} value={m.symbol}>
-                    {m.pair} · {m.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger id="market-picker" aria-label="Trading market">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(MARKETS).map((m) => (
+                    <SelectItem key={m.symbol} value={m.symbol}>
+                      {m.pair} · {m.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <a
               href={"/api/export?market=" + market}
               className="button secondary"
