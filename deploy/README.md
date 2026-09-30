@@ -1,43 +1,34 @@
-# Deployment
+# Railway deployment
 
-The Next.js dashboard runs on Vercel. The engine runs as one always-on Docker service on a VPS, with a persistent volume. Vercel never starts the polling loop or stores portfolio files.
+One Railway project has two independently deployed services, both sourced from `motiooon/AITradingBot` on `main`.
 
-## Vercel
+## Engine
 
-Import motiooon/AITradingBot as a Next.js project. Build command: `npm run build`.
-Server-only environment variables:
+- Config path: `/railway.json`; Dockerfile: `Dockerfile.engine`.
+- One replica; persistent volume mounted at `/app/data`; sleeping disabled.
+- `API_HOST=::`, `API_PORT=3001`, `PORT=3001`, `AUTO_RESUME=true`, `RAILWAY_RUN_UID=0`.
+- `DATA_DIR=/app/data/imported-session` for the existing migrated portfolio, or `/app/data` for a new installation.
+- Secrets: `TYPESAFE_API_KEY`, `ENGINE_API_TOKEN` (random, 32+ characters).
+- The engine's `RAILWAY_PRIVATE_DOMAIN` supplies its internal hostname. The dashboard uses it at port 3001.
+- `/healthz` checks process liveness. Actual market health is reported in authenticated `/api/state`.
 
-- `DASHBOARD_USER`, `DASHBOARD_PASSWORD`: required for HTTP Basic login. Public deployments fail closed when unset.
-- `ENGINE_URL`: HTTPS origin of the VPS engine, without an API path.
-- `ENGINE_API_TOKEN`: random 32+ character shared secret; must match the VPS.
+## Dashboard
 
-The Jev key belongs on the engine only. Do not prefix secrets with `NEXT_PUBLIC_`. Redeploy after editing environment variables. Until ENGINE_URL and its token are configured, the dashboard explicitly reports that the engine is not connected.
+- Railway service settings: Dockerfile path `Dockerfile.dashboard`, start command `node server.js`, healthcheck `/healthz` (120s), restart always, one replica, sleeping disabled. New Railway services no longer accept legacy JSON configuration files.
+- No volume; one Next.js instance with a Railway public HTTPS domain targeting port 3000.
+- `PORT=3000`, `DASHBOARD_REQUIRE_AUTH=true`.
+- `ENGINE_URL=http://engine.railway.internal:3001` (use the engine's actual private domain).
+- `ENGINE_API_TOKEN` matches the engine; `DASHBOARD_USER` and `DASHBOARD_PASSWORD` protect the UI and API with HTTP Basic authentication.
+- `DASHBOARD_ORIGIN` is the exact public HTTPS origin and protects POST actions from cross-origin requests.
+- The Jev API key belongs only on the engine. No secret is sent to browser code or GitHub.
+- `/healthz` is public and confirms required runtime settings exist; data/control routes require login.
 
-## VPS
+Pushes to GitHub deploy both connected services with their respective Dockerfiles. The engine still uses legacy `railway.json`; migrate that configuration before Railway’s December 1, 2026 cutoff. The engine resumes the persisted start/pause preference after restart. Use one engine replica per portfolio; do not scale file-based storage to multiple writers. Configure Railway volume backups. A persistent volume is not itself a backup.
 
-1. Install Docker Compose and a TLS reverse proxy such as Caddy.
-2. Clone the GitHub repository.
-3. Copy `deploy/engine.env.example` to `deploy/engine.env`, fill the secrets, and restrict permissions: `chmod 600 deploy/engine.env`.
-4. Run `docker compose up -d --build`. Keep exactly one engine replica per data volume.
-5. Set an engine domain's DNS to the VPS, install the example Caddy site with the real domain, and allow HTTPS inbound. The engine port is bound to VPS localhost only.
-6. Set the matching Vercel environment variables and redeploy the dashboard.
-7. Sign into the dashboard and start paper trading. Docker restarts the engine after a crash or host reboot; AUTO_RESUME restores the saved start/pause preference. A fatal engine error saves a paused preference when possible.
+## Local use
 
-`/healthz` is public and returns process liveness only. Every data/control endpoint requires the shared bearer token on a network-bound engine. TLS is provided by the VPS reverse proxy.
+`npm run dev` runs both services locally. To inspect the cloud engine locally, put ENGINE_URL and ENGINE_API_TOKEN in `.env`, build, then run the Next.js dashboard alone. Avoid starting a second local trading session when comparing the cloud portfolio.
 
-## Preserve existing history
+## Existing history
 
-Stop the local engine before a final copy of `data/session.json` and `data/audit.jsonl`. Stop the VPS engine, copy those files into its `paper-data` volume with ownership uid 1000, then restart. Never have two processes write the same volume. Historical decisions do not recreate missed trades while offline. Back up the data volume regularly. Postgres is not introduced by this deployment.
-
-Use `docker compose logs --tail=100 engine` to inspect status. This setup does not prevent outages or guarantee fills. The deployed engine retains the tested 15-second polling cadence.
-
-## Railway engine (managed alternative to a VPS)
-
-1. Create a Railway service from this GitHub repository. `railway.json` selects `Dockerfile.engine` and starts only the engine.
-2. Attach one persistent volume at `/app/data` **before starting paper trading**. Keep one replica. Enable volume backups in Railway.
-3. Set `TYPESAFE_API_KEY`, `ENGINE_API_TOKEN` (32+ random characters), `API_HOST=0.0.0.0`, `API_PORT=3001`, `PORT=3001`, `DATA_DIR=/app/data`, `AUTO_RESUME=true`, and `RAILWAY_RUN_UID=0`. Railway's root-owned volume requires the last setting for this Docker image.
-4. Disable Serverless/App Sleeping. Use an account plan that supports the required continuous service and restart policy.
-5. Generate a Railway HTTPS domain targeting port 3001. Configure its origin as `ENGINE_URL` in Vercel and share only the engine token with Vercel. Keep the Jev key on Railway.
-6. Verify `/healthz`, authenticated `/api/state`, and live candle updates. Start paper trading through the dashboard after moving the saved session, or explicitly begin a fresh portfolio.
-
-Do not put any secret or local trading history in GitHub. Importing the repository into Railway without configuring its volume and environment variables does not complete deployment.
+The original local history was copied into `/app/data/imported-session` on the Railway engine volume. That path must stay mounted and match DATA_DIR. Archive/export or back up the volume before changing it. Do not replace a live engine's portfolio files while it is writing.

@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { validBasicAuth } from "./src/auth";
 export function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === "/healthz") return NextResponse.next();
   const user = process.env.DASHBOARD_USER,
     password = process.env.DASHBOARD_PASSWORD;
   if (!user || !password) {
-    if (process.env.VERCEL)
+    if (
+      process.env.RAILWAY_ENVIRONMENT_ID ||
+      process.env.DASHBOARD_REQUIRE_AUTH === "true"
+    )
       return new NextResponse("Dashboard access is not configured.", {
         status: 503,
       });

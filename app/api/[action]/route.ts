@@ -14,26 +14,40 @@ async function forward(
     return Response.json({ error: "Not found" }, { status: 404 });
   if (request.method === "POST") {
     const origin = request.headers.get("origin");
-    if (origin && origin !== request.nextUrl.origin)
+    if (
+      origin &&
+      origin !== (process.env.DASHBOARD_ORIGIN || request.nextUrl.origin)
+    )
       return Response.json(
         { error: "Cross-origin action rejected" },
         { status: 403 },
       );
   }
   const configured = process.env.ENGINE_URL;
-  if (process.env.VERCEL && (!configured || !process.env.ENGINE_API_TOKEN))
+  if (
+    (process.env.RAILWAY_ENVIRONMENT_ID ||
+      process.env.DASHBOARD_REQUIRE_AUTH === "true") &&
+    (!configured || !process.env.ENGINE_API_TOKEN)
+  )
     return Response.json(
       {
         error:
-          "VPS engine is not connected yet. Configure ENGINE_URL and ENGINE_API_TOKEN in Vercel.",
+          "Trading engine is not connected yet. Configure ENGINE_URL and ENGINE_API_TOKEN on the dashboard service.",
       },
       { status: 503 },
     );
   const base = configured || `http://127.0.0.1:${process.env.API_PORT || 3001}`;
   try {
     const url = new URL(base);
-    if (process.env.VERCEL && url.protocol !== "https:")
-      throw new Error("Engine must use HTTPS");
+    if (
+      url.protocol !== "https:" &&
+      !(
+        url.protocol === "http:" &&
+        (url.hostname.endsWith(".railway.internal") ||
+          ["127.0.0.1", "localhost", "[::1]"].includes(url.hostname))
+      )
+    )
+      throw new Error("Use HTTPS or Railway private networking for the engine");
     const response = await fetch(new URL("/api/" + action, url), {
       method: request.method,
       headers: process.env.ENGINE_API_TOKEN
@@ -60,7 +74,7 @@ async function forward(
     return Response.json(
       {
         error:
-          "Trading engine is unreachable. Monitoring requires the VPS service to be running.",
+          "Trading engine is unreachable. Monitoring requires the engine service to be running.",
       },
       { status: 502 },
     );

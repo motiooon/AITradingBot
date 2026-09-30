@@ -11,7 +11,7 @@ Requires Node.js 22 or later. Install dependencies with `npm install`.
 3. Run `npm run dev` and open http://127.0.0.1:3000.
 4. Click **Start paper trading**. Without a key, live charts and indicators still work; no fabricated Jev answers or trades are substituted.
 
-Jev API calls consume your TypeSafe API allowance. At most one request per new five-minute candle while enabled (up to 288/day). Errors are recorded; a failed candle is not retried automatically. Both services bind only to localhost: Next.js on port 3000 and the engine on port 3001. Next.js proxies `/api/*` to the engine. Keep it running for data collection and risk exits. Entries start paused after every restart.
+Jev API calls consume your TypeSafe API allowance. At most one request per new five-minute candle while enabled (up to 288/day). Errors are recorded; a failed candle is not retried automatically. Both services bind only to localhost: Next.js on port 3000 and the engine on port 3001. Next.js proxies `/api/*` to the engine. Keep it running for data collection and risk exits. Entries start paused by default; the Railway deployment uses `AUTO_RESUME=true` to restore the saved start/pause preference.
 
 ## Simulation rules
 
@@ -44,4 +44,4 @@ Next.js App Router + React + strict TypeScript, TradingView Lightweight Charts, 
 
 ## Deploy from GitHub
 
-See [deployment instructions](deploy/README.md) for the Vercel dashboard and Docker-based VPS engine. Set `DASHBOARD_USER` and `DASHBOARD_PASSWORD` before opening a Vercel deployment. Set `ENGINE_URL` and `ENGINE_API_TOKEN` after the VPS is ready. Deploying the dashboard alone does not run the trading bot overnight.
+Both services run in the same Railway project. The engine uses `railway.json` and `Dockerfile.engine`; the dashboard uses `Dockerfile.dashboard` with build/start settings configured on Railway. Dashboard traffic reaches the engine over Railway private networking. See [deployment instructions](deploy/README.md). No Vercel account is needed.
